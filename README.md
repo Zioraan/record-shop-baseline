@@ -8,13 +8,16 @@ with an AI coding agent, against a fixed spec and eval suite.
 
 ## Read first (in this order)
 
-1. `docs/PROJECT_CONTEXT.md` — mission, principles, build order, and the
+1. `docs/PIPELINE_CONCEPTS.md` — **for you, not your agent**: the seven
+   aspects of every pipeline, mapped to what turns green on your dashboard
+   as each phase lands.
+2. `docs/PROJECT_CONTEXT.md` — mission, principles, build order, and the
    **landmine list**: real bugs the reference build already paid for.
-2. `docs/STACK_SPEC.md` — the concrete contract: services, ports, topics,
+3. `docs/STACK_SPEC.md` — the concrete contract: services, ports, topics,
    keys, metrics. Treat its names as API.
-3. `AGENT_HANDOFF.md` — the phase plan and eval IDs (E1.1–E6.6). **Evals are
+4. `AGENT_HANDOFF.md` — the phase plan and eval IDs (E1.1–E6.6). **Evals are
    the definition of done.** Load it + the spec into your agent every session.
-4. `docs/architecture-spec.md` — the authoritative architecture (wins all
+5. `docs/architecture-spec.md` — the authoritative architecture (wins all
    conflicts). `docs/stack-overview.md` is a narrative tour of where you'll
    end up.
 
@@ -36,6 +39,12 @@ with an AI coding agent, against a fixed spec and eval suite.
   diagnosis) is implemented there; keep it.
 - Infrastructure in `docker-compose.yml`: Postgres, Redis, Kafka (+ topic
   init), Mongo, Prometheus, Grafana — these run from day one.
+- **The ops dashboard, complete** (`frontends/dashboard/`) — deliberately.
+  It is your **build map**: open localhost:8501 on day one and the Pipeline
+  tab shows every stage of the pipeline as a grey node. Each phase you
+  complete turns nodes green. Use it while planning with your agent
+  (docs/PIPELINE_CONCEPTS.md is the companion). You don't write Streamlit
+  in this course; you build the pipeline the dashboard watches.
 - The storefront `nginx.conf` — it encodes landmine #3; leave it alone.
 
 **You build (each with its phase and evals):**
@@ -44,8 +53,7 @@ with an AI coding agent, against a fixed spec and eval suite.
 - The FastAPI endpoints in `services/api/app/main.py` (Phase 1–2)
 - `libs/common/checkpoints.py`, `services/outbox-relay/`,
   `services/audit-sink/` (Phase 2)
-- `services/stream-processor/`, `frontends/dashboard/` tabs,
-  `services/simulator/` (Phase 3)
+- `services/stream-processor/`, `services/simulator/` (Phase 3)
 - `services/flows/` (Phases 4–5)
 - Grafana dashboards + OTel polish (Phase 6)
 - The eval tests themselves, `evals/phaseN/test_phaseN.py` — written with
@@ -58,10 +66,12 @@ ports, and the landmines that apply to it. Uncomment its block in
 ## Day-one smoke test
 
 ```bash
-docker compose up -d          # infra + api skeleton + storefront
+docker compose up -d          # infra + api skeleton + storefront + dashboard
 curl http://localhost:8000/healthz          # {"ok": true}
 # storefront at http://localhost:5173 — shows "Could not load albums"
 # until you implement Phase 1. That error message is your starting line.
+# dashboard at http://localhost:8501 — open the Pipeline tab: every stage
+# grey. That diagram is the syllabus; your job is to turn it green.
 ```
 
 ## Working rules (non-negotiable)

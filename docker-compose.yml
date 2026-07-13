@@ -102,6 +102,19 @@ services:
       - ./infra/grafana/dashboards:/var/lib/grafana/dashboards:ro
     ports: ["3000:3000"]
 
+  # GIVEN: the ops dashboard ships complete — it is your build map. Every
+  # stage in its Pipeline-tab flow diagram starts grey and turns green as
+  # your phases land. See docs/PIPELINE_CONCEPTS.md.
+  dashboard:
+    build: { context: ., dockerfile: frontends/dashboard/Dockerfile }
+    environment:
+      <<: *python-env
+    ports: ["8501:8501"]
+    depends_on:
+      postgres: { condition: service_healthy }
+      mongo: { condition: service_healthy }
+      redis: { condition: service_healthy }
+
   # ------------------------------------------------------------------ #
   # PHASE 1 — system of record                                          #
   # ------------------------------------------------------------------ #
@@ -171,17 +184,6 @@ services:
   #     mongo: { condition: service_healthy }
   #     redis: { condition: service_healthy }
   #   restart: unless-stopped
-
-  # dashboard:
-  #   build: { context: ., dockerfile: frontends/dashboard/Dockerfile }
-  #   environment:
-  #     <<: *python-env
-  #     PREFECT_API_URL: http://prefect-server:4200/api
-  #   ports: ["8501:8501"]
-  #   depends_on:
-  #     postgres: { condition: service_healthy }
-  #     mongo: { condition: service_healthy }
-  #     redis: { condition: service_healthy }
 
   # simulator:
   #   build: { context: ., dockerfile: services/simulator/Dockerfile }
