@@ -26,14 +26,21 @@ with an AI coding agent, against a fixed spec and eval suite.
   client defines the endpoints your API must serve; `src/api/types.ts`
   mirrors `services/api/app/models.py` (also given — it is the contract).
 - `libs/common/`: `ids.py`, `logging.py`, `metrics.py` (metric definitions
-  are contract), `catalog_data.py` (name templates so every student's
-  catalog matches lecture references).
+  are contract), `catalog_data.py`, and the **full seeder**
+  (`seeding.py` + `seed_cli.py`) — data generation is grunt work, not a
+  pipeline lesson, and a given seeder guarantees every student's catalog
+  matches lecture references (E1.3 checksums, "look up SKU-00042"). It is
+  also your **executable schema spec**: its INSERTs tell you exactly which
+  tables and columns your `init.sql` must define, and it fails with a clear
+  error until they exist. Read `load_catalog` — landmine #2 (lock_timeout +
+  diagnosis) is implemented there; keep it.
 - Infrastructure in `docker-compose.yml`: Postgres, Redis, Kafka (+ topic
   init), Mongo, Prometheus, Grafana — these run from day one.
 - The storefront `nginx.conf` — it encodes landmine #3; leave it alone.
 
 **You build (each with its phase and evals):**
-- `infra/postgres/init.sql` (schema), `libs/common/seeding.py` (Phase 1)
+- `infra/postgres/init.sql` (schema — the given seeder is your executable
+  spec for it) (Phase 1)
 - The FastAPI endpoints in `services/api/app/main.py` (Phase 1–2)
 - `libs/common/checkpoints.py`, `services/outbox-relay/`,
   `services/audit-sink/` (Phase 2)

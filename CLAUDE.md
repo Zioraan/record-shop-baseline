@@ -21,8 +21,10 @@ are given; the pipeline itself is built phase by phase against evals.
 - The six non-negotiable principles in PROJECT_CONTEXT §2 are defects to
   violate even if features work.
 - GIVEN files (storefront UI, models.py, libs/common/{ids,logging,metrics,
-  catalog_data}.py, nginx.conf, eval fixtures) are contract — extend the
-  system around them, don't rewrite them.
+  catalog_data,seeding,seed_cli}.py, nginx.conf, eval fixtures) are
+  contract — extend the system around them, don't rewrite them. In
+  particular, never touch `build_catalog` ordering/logic — E1.3 asserts
+  byte-identical re-seeds.
 - Encode the ten landmines (PROJECT_CONTEXT §6) from day one — they are
   requirements, not history.
 - Deviations/ambiguities → `docs/DECISIONS.md`; verified milestones →
