@@ -167,3 +167,9 @@ regressed:
     `http://localhost:4200/api` locally, or the forwarded
     `https://$CODESPACE_NAME-4200.$GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN/api`
     in Codespaces (the devcontainer postCreate writes this into `.env`).
+12. **Prefect server state is ephemeral without a volume.** The server keeps
+    deployments + run history in SQLite inside the container; recreating it
+    (any env change, `up -d` after edits) silently wipes them and
+    `prefect deployment ls` comes back empty. Mount `prefectdata:/root/.prefect`
+    AND remember: after any server recreate, restart `prefect-worker` so its
+    serve() process re-registers deployments.

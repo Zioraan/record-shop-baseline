@@ -213,6 +213,11 @@ services:
   #     # Codespaces: the devcontainer postCreate writes .env with the
   #     # forwarded URL. Local: the localhost default just works.
   #     PREFECT_UI_API_URL: ${PREFECT_UI_API_URL:-http://localhost:4200/api}
+  #   # Landmine #12: persist the server DB or recreating the container
+  #   # wipes all deployments + run history (worker must then re-register).
+  #   volumes:
+  #     - prefectdata:/root/.prefect
+  #   # ...and add `prefectdata:` under the top-level volumes: key.
   #   healthcheck:
   #     test: ["CMD-SHELL", "python -c \"import urllib.request;urllib.request.urlopen('http://localhost:4200/api/health')\""]
   #     interval: 10s
