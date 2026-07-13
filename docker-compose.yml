@@ -2,7 +2,9 @@
 # Infrastructure services are GIVEN and run from day one. Application
 # services are uncommented as you build them, phase by phase. Do not invent
 # alternative structure — evals and docs reference these names literally.
-name: music-pipeline
+# Distinct project name so this stack never collides with (or inherits the
+# volumes of) the reference implementation if both live on one machine.
+name: record-shop-baseline
 
 x-python-env: &python-env
   RANDOM_SEED: "1138"
