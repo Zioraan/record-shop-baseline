@@ -1,0 +1,228 @@
+# docker-compose.yml — STUDENT BASELINE
+# Infrastructure services are GIVEN and run from day one. Application
+# services are uncommented as you build them, phase by phase. Do not invent
+# alternative structure — evals and docs reference these names literally.
+name: music-pipeline
+
+x-python-env: &python-env
+  RANDOM_SEED: "1138"
+  POSTGRES_DSN: postgresql://shop:shop@postgres:5432/recordshop
+  KAFKA_BOOTSTRAP: kafka:9092
+  MONGO_URI: mongodb://mongo:27017
+  MONGO_DB: recordshop
+  REDIS_URL: redis://redis:6379/0
+  LOG_LEVEL: INFO
+
+services:
+  # ------------------------------------------------------------------ #
+  # GIVEN INFRASTRUCTURE — runs from day one                            #
+  # ------------------------------------------------------------------ #
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: shop
+      POSTGRES_PASSWORD: shop
+      POSTGRES_DB: recordshop
+    ports: ["5432:5432"]
+    volumes:
+      - ./infra/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U shop -d recordshop"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+  redis:
+    image: redis:7-alpine
+    ports: ["6379:6379"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+  kafka:
+    image: apache/kafka:3.8.0
+    ports: ["9092:9092", "29092:29092"]
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093,EXTERNAL://:29092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,EXTERNAL://localhost:29092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT,EXTERNAL:PLAINTEXT
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server localhost:9092 >/dev/null 2>&1"]
+      interval: 10s
+      timeout: 10s
+      retries: 12
+
+  kafka-init:
+    image: apache/kafka:3.8.0
+    depends_on:
+      kafka: { condition: service_healthy }
+    entrypoint: ["/bin/bash", "-c"]
+    command:
+      - |
+        for t in orders.created orders.status clickstream.events pipeline.audit orders.dlq; do
+          /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092 \
+            --create --if-not-exists --topic $$t --partitions 3 --replication-factor 1
+        done
+        echo "topics ready"
+    restart: "no"
+
+  mongo:
+    image: mongo:7
+    ports: ["27017:27017"]
+    volumes: [mongodata:/data/db]
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.runCommand({ping:1}).ok"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+  prometheus:
+    image: prom/prometheus:v2.53.0
+    volumes:
+      - ./infra/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    ports: ["9090:9090"]
+
+  grafana:
+    image: grafana/grafana:11.1.0
+    environment:
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Admin
+    volumes:
+      - ./infra/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./infra/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    ports: ["3000:3000"]
+
+  # ------------------------------------------------------------------ #
+  # PHASE 1 — system of record                                          #
+  # ------------------------------------------------------------------ #
+  api:
+    build: { context: ., dockerfile: services/api/Dockerfile }
+    environment:
+      <<: *python-env
+      OTEL_SERVICE_NAME: api
+    ports: ["8000:8000"]
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request;urllib.request.urlopen('http://localhost:8000/healthz')\""]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+  storefront:
+    build: { context: ., dockerfile: frontends/storefront/Dockerfile }
+    ports: ["5173:80"]
+    depends_on:
+      api: { condition: service_healthy }
+
+  # ------------------------------------------------------------------ #
+  # PHASE 2 — events: uncomment when the code exists                    #
+  # ------------------------------------------------------------------ #
+  # outbox-relay:
+  #   build: { context: ., dockerfile: services/outbox-relay/Dockerfile }
+  #   environment:
+  #     <<: *python-env
+  #     OTEL_SERVICE_NAME: outbox-relay
+  #     METRICS_PORT: "9101"
+  #   ports: ["9101:9101"]
+  #   depends_on:
+  #     postgres: { condition: service_healthy }
+  #     kafka: { condition: service_healthy }
+  #     kafka-init: { condition: service_completed_successfully }
+  #   restart: unless-stopped
+
+  # audit-sink:
+  #   build: { context: ., dockerfile: services/audit-sink/Dockerfile }
+  #   environment:
+  #     <<: *python-env
+  #     OTEL_SERVICE_NAME: audit-sink
+  #     METRICS_PORT: "9103"
+  #   ports: ["9103:9103"]
+  #   depends_on:
+  #     kafka: { condition: service_healthy }
+  #     kafka-init: { condition: service_completed_successfully }
+  #     mongo: { condition: service_healthy }
+  #   restart: unless-stopped
+
+  # ------------------------------------------------------------------ #
+  # PHASE 3 — stream path                                               #
+  # ------------------------------------------------------------------ #
+  # stream-processor:
+  #   build: { context: ., dockerfile: services/stream-processor/Dockerfile }
+  #   environment:
+  #     <<: *python-env
+  #     OTEL_SERVICE_NAME: stream-processor
+  #     METRICS_PORT: "9102"
+  #   ports: ["9102:9102"]
+  #   depends_on:
+  #     kafka: { condition: service_healthy }
+  #     kafka-init: { condition: service_completed_successfully }
+  #     mongo: { condition: service_healthy }
+  #     redis: { condition: service_healthy }
+  #   restart: unless-stopped
+
+  # dashboard:
+  #   build: { context: ., dockerfile: frontends/dashboard/Dockerfile }
+  #   environment:
+  #     <<: *python-env
+  #     PREFECT_API_URL: http://prefect-server:4200/api
+  #   ports: ["8501:8501"]
+  #   depends_on:
+  #     postgres: { condition: service_healthy }
+  #     mongo: { condition: service_healthy }
+  #     redis: { condition: service_healthy }
+
+  # simulator:
+  #   build: { context: ., dockerfile: services/simulator/Dockerfile }
+  #   environment:
+  #     <<: *python-env
+  #     OTEL_SERVICE_NAME: simulator
+  #     API_URL: http://api:8000
+  #     ORDERS_PER_MINUTE: "20"
+  #   depends_on:
+  #     api: { condition: service_healthy }
+  #   restart: unless-stopped
+  #   profiles: ["traffic"]   # opt-in: docker compose --profile traffic up
+
+  # ------------------------------------------------------------------ #
+  # PHASE 4 — batch path                                                #
+  # ------------------------------------------------------------------ #
+  # prefect-server:
+  #   image: prefecthq/prefect:3-latest
+  #   command: prefect server start --host 0.0.0.0
+  #   ports: ["4200:4200"]
+  #   environment:
+  #     PREFECT_API_URL: http://prefect-server:4200/api
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "python -c \"import urllib.request;urllib.request.urlopen('http://localhost:4200/api/health')\""]
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 18
+
+  # prefect-worker:
+  #   build: { context: ., dockerfile: services/flows/Dockerfile }
+  #   environment:
+  #     <<: *python-env
+  #     PREFECT_API_URL: http://prefect-server:4200/api
+  #     OTEL_SERVICE_NAME: prefect-worker
+  #   depends_on:
+  #     prefect-server: { condition: service_healthy }
+  #     postgres: { condition: service_healthy }
+  #     mongo: { condition: service_healthy }
+  #     redis: { condition: service_healthy }
+  #   restart: unless-stopped
+
+volumes:
+  pgdata:
+  mongodata:

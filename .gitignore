@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+
+# Node / storefront
+node_modules/
+frontends/storefront/dist/
+
+# Environment & secrets
+.env
+.env.*
+
+# Editor / OS noise
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Local scratch
+*.log
+
+# Claude Code local (per-machine) settings
+.claude/settings.local.json

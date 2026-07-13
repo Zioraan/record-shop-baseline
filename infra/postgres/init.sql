@@ -1,0 +1,17 @@
+-- Record Shop OLTP schema — STUDENT DELIVERABLE (Phase 1) [E1.2, E1.5, E1.6]
+--
+-- Required tables (docs/architecture-spec.md §4.3, docs/STACK_SPEC.md §4):
+--   genres, artists, albums, tracks,
+--   products        (album × format; unique SKU; price_cents),
+--   customers, orders, order_items,
+--   inventory       (rows for PHYSICAL formats only — digital is infinite),
+--   outbox          (id, aggregate_type, aggregate_id, event_type,
+--                    payload jsonb, trace_id, created_at, published_at),
+--   clickstream_archive (event_id, trace_id, event_type, customer_id,
+--                        album_id, ts)
+--
+-- This file runs once via docker-entrypoint-initdb.d on a fresh volume.
+-- DDL only — data loading is the seeder's job (libs/common/seeding.py),
+-- keeping schema and data lifecycle separate.
+
+-- TODO Phase 1: write the DDL.

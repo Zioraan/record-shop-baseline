@@ -1,0 +1,9 @@
+streamlit==1.46.*
+pandas==2.2.*
+# pyarrow 25.0.0 segfaults in convert_column when Streamlit renders a
+# dataframe inside a script-runner thread (SIGSEGV, exit 139, no traceback).
+# Verified: 20.x and 24.x are fine on the same numpy (2.5.1).
+pyarrow<25
+psycopg[binary]==3.2.*
+pymongo==4.8.*
+redis==5.0.*
