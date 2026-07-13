@@ -208,6 +208,11 @@ services:
   #   ports: ["4200:4200"]
   #   environment:
   #     PREFECT_API_URL: http://prefect-server:4200/api
+  #     # Landmine #11: the Prefect UI runs in YOUR BROWSER — it needs an
+  #     # API address the browser can resolve, not the Docker hostname.
+  #     # Codespaces: the devcontainer postCreate writes .env with the
+  #     # forwarded URL. Local: the localhost default just works.
+  #     PREFECT_UI_API_URL: ${PREFECT_UI_API_URL:-http://localhost:4200/api}
   #   healthcheck:
   #     test: ["CMD-SHELL", "python -c \"import urllib.request;urllib.request.urlopen('http://localhost:4200/api/health')\""]
   #     interval: 10s

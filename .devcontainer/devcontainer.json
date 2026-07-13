@@ -18,7 +18,10 @@
   // Day-one experience: infra + skeleton up and healthy, eval deps ready.
   // Open the dashboard (port 8501) → Pipeline tab → every stage grey.
   // Your job is to turn them green. Start with README.md.
-  "postCreateCommand": "docker compose up -d --build --wait && pip install -r evals/requirements.txt",
+  // The .env line pre-solves landmine #11 for Phase 4: it points the
+  // Prefect UI (which runs in YOUR browser) at the Codespaces-forwarded
+  // API URL instead of the Docker-internal hostname.
+  "postCreateCommand": "bash -c 'if [ -n \"$CODESPACE_NAME\" ]; then echo \"PREFECT_UI_API_URL=https://$CODESPACE_NAME-4200.$GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN/api\" > .env; fi && docker compose up -d --build --wait && pip install -r evals/requirements.txt'",
   "customizations": {
     "vscode": {
       "extensions": ["ms-python.python", "ms-azuretools.vscode-docker"]

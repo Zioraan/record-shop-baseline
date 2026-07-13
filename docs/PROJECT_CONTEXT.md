@@ -160,3 +160,10 @@ regressed:
 10. **Purchases can exceed checkouts in the funnel.** Orders placed straight
     through the API (evals, scripts) never emit browsing events. Label this
     in any funnel UI instead of "fixing" it.
+11. **Prefect UI "unable to connect" behind any proxy (Codespaces, etc.).**
+    The Prefect UI runs in the user's browser and calls the API at
+    `PREFECT_API_URL` — a Docker-internal hostname the browser can't
+    resolve. Set `PREFECT_UI_API_URL` to a browser-reachable address:
+    `http://localhost:4200/api` locally, or the forwarded
+    `https://$CODESPACE_NAME-4200.$GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN/api`
+    in Codespaces (the devcontainer postCreate writes this into `.env`).
