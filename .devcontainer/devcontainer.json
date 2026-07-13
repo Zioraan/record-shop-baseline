@@ -1,0 +1,27 @@
+{
+  "name": "Record Shop Pipeline (student baseline)",
+  "image": "mcr.microsoft.com/devcontainers/base:ubuntu-24.04",
+  "features": {
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {},
+    "ghcr.io/devcontainers/features/python:1": { "version": "3.12" }
+  },
+  "hostRequirements": { "cpus": 4, "memory": "16gb", "storage": "32gb" },
+  "forwardPorts": [5173, 8000, 8501, 3000, 4200, 9090],
+  "portsAttributes": {
+    "5173": { "label": "Storefront" },
+    "8000": { "label": "API (your Phase 1+ work; /docs)" },
+    "8501": { "label": "Ops dashboard — your build map (all grey on day one)" },
+    "3000": { "label": "Grafana (fills in Phase 6)" },
+    "4200": { "label": "Prefect UI (appears in Phase 4)" },
+    "9090": { "label": "Prometheus" }
+  },
+  // Day-one experience: infra + skeleton up and healthy, eval deps ready.
+  // Open the dashboard (port 8501) → Pipeline tab → every stage grey.
+  // Your job is to turn them green. Start with README.md.
+  "postCreateCommand": "docker compose up -d --build --wait && pip install -r evals/requirements.txt",
+  "customizations": {
+    "vscode": {
+      "extensions": ["ms-python.python", "ms-azuretools.vscode-docker"]
+    }
+  }
+}
